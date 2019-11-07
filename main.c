@@ -37,7 +37,7 @@ void usage() {
         printf("OPTIONS:\n");
         printf("    --help|-h:   Show this help text\n");
         printf("    --width|-w:  Screen width (defaults to 600)\n");
-        printf("    --height|-v: Screen height (defaults to 300)p\n");
+        printf("    --height|-v: Screen height (defaults to 300)\n");
         printf("    --x:         Text x position (defaults to 20)\n");
         printf("    --y:         Text y position (defaults to 150)\n");
         printf("    --scale|-s:  Scale of text (defaults to 40)\n");

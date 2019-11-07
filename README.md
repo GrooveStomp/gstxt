@@ -38,7 +38,7 @@ Renders text on screen in software.
 OPTIONS:
     --help|-h:   Show this help text
     --width|-w:  Screen width (defaults to 600)
-    --height|-v: Screen height (defaults to 300)p
+    --height|-v: Screen height (defaults to 300)
     --x:         Text x position (defaults to 20)
     --y:         Text y position (defaults to 150)
     --scale|-s:  Scale of text (defaults to 40)
