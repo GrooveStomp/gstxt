@@ -1,48 +1,35 @@
 /******************************************************************************
-  GrooveStomp's 3D Software Renderer
+  GrooveStomp's Text Renderer
   Copyright (c) 2019 Aaron Oman (GrooveStomp)
 
   File: graphics.h
   Created: 2019-07-16
-  Updated: 2019-11-06
+  Updated: 2019-11-07
   Author: Aaron Oman
   Notice: GNU GPLv3 License
 
-  Based off of: One Lone Coder Console Game Engine Copyright (C) 2018 Javidx9
   This program comes with ABSOLUTELY NO WARRANTY.
   This is free software, and you are welcome to redistribute it under certain
   conditions; See LICENSE for details.
  ******************************************************************************/
-#include <stdint.h>
-
 //! \file graphics.h
 //! Drawing interface to the operating system.
+#include <stdint.h>
 
 #ifndef GRAPHICS_VERSION
-#define GRAPHICS_VERSION "0.1.0" //!< include guard
+#define GRAPHICS_VERSION "0.2-gstxt" //!< include guard and version info
 
-#include "SDL2/SDL.h"
-
-//! \brief Creates and initializes a new graphics object isntance
-//!
-//! Scale can be specified as a non-negative number. This value is used to
-//! multiply both the width and the height and the pixel size of any drawing
-//! operations.
-//!
-//! For example, specifying a scale of 2 would multiply the width by 2, the
-//! height by 2, and every pixel would be 2x2; so the total scale factor ends up
-//! being scale^2
+//! \brief Creates and initializes new graphics state.
 //!
 //! \param[in] title The title displayed in the window titlebar
 //! \param[in] width Width of the display area of the window, in pixels
 //! \param[in] height Height of the display are of the window, in pixels
-//! \param[in] scale Size and rendering scale, natural number multiple
-//! \return The initialized graphics object
+//! \return The initialized graphics state
 struct graphics *
 GraphicsInit(char *title, int width, int height);
 
-//! \brief De-initializes and frees memory for the given graphics object
-//! \param[in,out] graphics The initialized opcode object to be cleaned and reclaimed
+//! \brief De-initializes and frees memory from the graphics state
+//! \param[in,out] graphics
 void
 GraphicsDeinit(struct graphics *graphics);
 
@@ -50,7 +37,7 @@ GraphicsDeinit(struct graphics *graphics);
 //!
 //! Internally locks streaming texture for direct manipulation.
 //!
-//! \param[in, out] graphics Graphics state to be manipulated
+//! \param[in,out] graphics
 void
 GraphicsBegin(struct graphics *graphics);
 
@@ -58,33 +45,52 @@ GraphicsBegin(struct graphics *graphics);
 //!
 //! Internally unlocks streaming texture then calls presentation routines.
 //!
-//! \param[in, out] graphics Graphics state to be manipulated.
+//! \param[in,out] graphics
 void
 GraphicsEnd(struct graphics *graphics);
 
-//! \brief Sets all pixels in the screen to the given color
+//! \brief Sets all pixels in the display buffer to the given color
 //!
-//! \param[in, out] graphics Graphics state to be manipulated
-//! \param[in] color 32-bit color with 8-bits per component: (R,G,B,A)
+//! \param[in, out] graphics
+//! \param[in] color 32-bit color (R|G|B|A) to clear the screen to
 void
 GraphicsClearScreen(struct graphics *graphics, uint32_t color);
 
-//! \brief Put a pixel into the graphics buffer
+//! \brief Put a pixel into the display buffer
 //!
-//! \param[in,out] graphics Graphics state to be manipulated
-//! \param[in] x horizontal position in display buffer (assuming no scaling)
-//! \param[in] y vertical position in display buffer (assuming no scaling)
-//! \param[in] color Color to put into display buffer
+//! \param[in,out] graphics
+//! \param[in] x display buffer x coordinate
+//! \param[in] y display buffer y coordinate
+//! \param[in] color 32-bit color (R|G|B|A) to set the pixel to
 void
 GraphicsPutPixel(struct graphics *graphics, int x, int y, uint32_t color);
 
+//! \brief Get the color fo the pixel at (x,y) in the display buffer
+//!
+//! \param[in,out] graphics
+//! \param[in] x display buffer x coordinate
+//! \param[in] y display buffer y coordinate
+//! \return 32-bit color (R|G|B|A) of the target pixel
 uint32_t
 GraphicsGetPixel(struct graphics *graphics, int x, int y);
 
+//! \brief Initialize graphics state for text rendering
+//!
+//! \param[in,out] graphics
+//! \param[in] ttfBuffer the contents of a truetype font file loaded into memory
 void
 GraphicsInitText(struct graphics *graphics, unsigned char *ttfBuffer);
 
+//! \brief Draw text to the display buffer
+//!
+//! \param[in,out] graphics
+//! \param[in] x leftmost position to start drawing text from
+//! \param[in] y position from the bottom of the dispaly buffer to start drawing
+//! text from
+//! \param[in] string text to render
+//! \param[in] fontHeight sets the height of the font in pixels
+//! \param[in] color 32-bit color (R|G|B|A) to render text in
 void
-GraphicsDrawText(struct graphics *graphics, int x, int y, char *string, int pixHeight, uint32_t color);
+GraphicsDrawText(struct graphics *graphics, int x, int y, char *string, int fontHeight, uint32_t color);
 
 #endif // GRAPHICS_VERSION

@@ -1,17 +1,36 @@
+/******************************************************************************
+  GrooveStomp's Text Renderer
+  Copyright (c) 2019 Aaron Oman (GrooveStomp)
+
+  File: main.c
+  Created: 2019-11-06
+  Updated: 2019-11-07
+  Author: Aaron Oman
+  Notice: GNU GPLv3 License
+
+  This program comes with ABSOLUTELY NO WARRANTY.
+  This is free software, and you are welcome to redistribute it under certain
+  conditions; See LICENSE for details.
+ ******************************************************************************/
+//! \file main.c
 #include <time.h> // nanosleep
 #include <stdlib.h> // exit
 #include <stdio.h> // fopen, fclose, printf, fprintf
 #include <getopt.h> // getopt
 
-#include "stb_truetype.h"
-
 #include "graphics.h"
 #include "input.h"
 
+//! \brief convert from seconds to nanoseconds
+//!
+//! Used to make it easier to understand the value being passed to nanosleep()
+//!
+//! \param x number of seconds
+//! \return x as nanoseconds
 #define S_TO_NS(x) (x) * 1000000000
 
-void usage(char *prog) {
-        printf("Usage: %s text [OPTIONS] ttf_file\n", prog);
+void usage() {
+        printf("Usage: gstxt text [OPTIONS] ttf_file\n");
         printf("\n");
         printf("Renders text on screen in software.\n");
         printf("\n");
@@ -22,13 +41,23 @@ void usage(char *prog) {
         printf("    --x:         Text x position (defaults to 20)\n");
         printf("    --y:         Text y position (defaults to 150)\n");
         printf("    --scale|-s:  Scale of text (defaults to 40)\n");
+        printf("    --fg|-f:     Foreground color as a 32-bit hexadecimal RGBA value (defaults to 0x000000FF)\n");
+        printf("    --bg|-b:     Background color as a 32-bit hexadecimal RGBA value (defaults to 0xFFFFFFFF)\n");
 }
 
-static unsigned char ttf_buffer[1<<25];
-struct graphics *graphics = NULL;
-struct input *input = NULL;
-FILE *ttf_file = NULL;
 
+static unsigned char ttf_buffer[1<<25]; //!< TrueType font file data
+static struct graphics *graphics = NULL; //!< graphics subsystem state
+static struct input *input = NULL; //!< input subsystem state
+static FILE *ttf_file = NULL; //!< file handle to TrueType font file
+
+//! \brief Gracefully release all resources in use
+//!
+//! Complex program states are maintained in global variables in main.c so we can
+//! uniformly handle them all, regardless of which ones have been properly
+//! initialized yet or where.
+//!
+//! \param code the exit code to terminate with, passed to exit()
 void Shutdown(int code) {
         if (NULL != ttf_file)
                 fclose(ttf_file);
@@ -46,6 +75,8 @@ int main(int argc, char **argv) {
         unsigned int x = 20;
         unsigned int y = 150;
         unsigned int scale = 40;
+        uint32_t fg = 0x000000FF;
+        uint32_t bg = 0xFFFFFFFF;
 
         while (1) {
                 static struct option long_options[] = {
@@ -54,17 +85,19 @@ int main(int argc, char **argv) {
                         { "height", required_argument, NULL, 'v' },
                         { "x", required_argument, NULL, 'x' },
                         { "y", required_argument, NULL, 'y' },
-                        { "scale", required_argument, NULL, 's' }
+                        { "scale", required_argument, NULL, 's' },
+                        { "fg", required_argument, NULL, 'f' },
+                        { "bg", required_argument, NULL, 'b' },
                 };
                 int option_index = 0;
 
-                int c = getopt_long(argc, argv, "h,w:v:x:y:s:", long_options, &option_index);
+                int c = getopt_long(argc, argv, "hw:v:x:y:s:b:f:", long_options, &option_index);
                 if (c == -1)
                         break;
 
                 switch (c) {
                         case 'h': {
-                                usage(argv[0]);
+                                usage();
                                 Shutdown(0);
                         }
                         case 'w': {
@@ -87,13 +120,21 @@ int main(int argc, char **argv) {
                                 scale = atoi(optarg);
                                 break;
                         }
+                        case 'b': {
+                                bg = strtol(optarg, NULL, 16);
+                                break;
+                        }
+                        case 'f': {
+                                fg = strtol(optarg, NULL, 16);
+                                break;
+                        }
                         default:
                                 abort();
                 }
         }
 
         if ((argc - optind) != 2) {
-                usage(argv[0]);
+                usage();
                 Shutdown(0);
         }
 
@@ -127,17 +168,15 @@ int main(int argc, char **argv) {
         fclose(ttf_file); ttf_file = NULL;
         GraphicsInitText(graphics, ttf_buffer);
 
-        SDL_Event event;
         int running = 1;
         while (running) {
                 GraphicsBegin(graphics);
-                GraphicsClearScreen(graphics, 0xFFFFFFFF);
-                GraphicsDrawText(graphics, x, y, string_to_render, scale, 0x0000FFFF);
+                GraphicsClearScreen(graphics, bg);
+                GraphicsDrawText(graphics, x, y, string_to_render, scale, fg);
                 GraphicsEnd(graphics);
 
-                while (SDL_PollEvent(&event)) {
-                        running = !InputIsQuitPressed(&event);
-                }
+                InputProcess(input);
+                running = !InputIsQuitRequested(input);
 
                 nanosleep(&sleep, NULL);
         }

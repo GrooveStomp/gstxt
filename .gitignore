@@ -2,3 +2,5 @@ debug
 a.out
 core
 *.ttf
+release
+docs/latex

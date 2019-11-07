@@ -1,30 +1,26 @@
 /******************************************************************************
-  GrooveStomp's 3D Software Renderer
+  GrooveStomp's Text Renderer
   Copyright (c) 2019 Aaron Oman (GrooveStomp)
 
   File: graphics.c
   Created: 2019-06-25
-  Updated: 2019-11-06
+  Updated: 2019-11-07
   Author: Aaron Oman
   Notice: GNU GPLv3 License
 
-  Based off of: One Lone Coder Console Game Engine Copyright (C) 2018 Javidx9
   This program comes with ABSOLUTELY NO WARRANTY.
   This is free software, and you are welcome to redistribute it under certain
   conditions; See LICENSE for details.
  ******************************************************************************/
-
 //! \file graphics.c
 
-#include <string.h> // memset
+#include <string.h> // memset, memmove
 #include <stdio.h> // fprintf
 
 #include "SDL2/SDL.h"
 
 #define STB_TRUETYPE_IMPLEMENTATION
 #include "stb_truetype.h"
-
-#include "math.h"
 #include "graphics.h"
 
 //! \brief A mostly generic implementation of swap
@@ -43,7 +39,7 @@ void swap_generic(void *v1, void *v2, size_t size) {
         memmove(v2, temp, size);
 }
 
-//! \brief Graphics state
+//! \brief graphics state
 struct graphics {
         SDL_Window *window;
         SDL_Renderer *renderer;
@@ -126,23 +122,55 @@ void GraphicsEnd(struct graphics *graphics) {
         SDL_RenderPresent(graphics->renderer);
 }
 
-void GraphicsClearScreen(struct graphics *graphics, unsigned int color) {
+void GraphicsClearScreen(struct graphics *graphics, uint32_t color) {
         for (int i = 0; i < graphics->bytesPerRow * graphics->height; i+=4) {
                 unsigned int *pixel = (unsigned int *)&graphics->pixels[i];
                 *pixel = color;
         }
 }
 
+//! \brief converts a 0-255 int value to a float value
+//!
+//! \param[in] value int in the range 0-255
+//! \return float in the range [0,1]
 float ByteToFloat(uint8_t value) {
         return (float)value / 255.0;
 }
 
+//! \brief compute the ADD OVERLAY alpha blend of 1 over 2
+//!
+//! c1 and a1 come from object 1, which is overlaid upon object 2's attributes:
+//! c2, a2
+//!
+//! \param[in] c1 R,G or B component from object 1 in [0,1]
+//! \param[in] a1 Alpha component of object 1 in [0,1]
+//! \param[in] c2 Corresponding R,G or B component from object 2 in [0,1]
+//! \param[in] a2 Alpha component of object 2 in [0,1]
+//! \return resulting R,G or B component in [0,1]
+//!
+//! \see https://en.wikipedia.org/wiki/Alpha_compositing#Description
+//! \see AlphaBlendPixels()
 float AlphaBlendComponent(float c1, float a1, float c2, float a2) {
         float dividend = (c1 * a1) + ((c2 * a2) * (1.0f - a1));
         float divisor = a1 + (a2 * (1.0f - a1));
         return dividend / divisor;
 }
 
+//! \brief compute the ADD OVERLAY alpha blend of top over bottom
+//!
+//! top is a 32-bit (R|G|B|A) color and bottom is also a 32-bit (R|G|B|A)
+//! color. We compute the ADD OVERLAY operation of top overlayed onto bottom.
+//!
+//! To achieve this, we splite each 32-bit integer into its corresponding
+//! R,G,B,A components and then invoke AlphaBlendComponent() on each R,G,B
+//! component.
+//!
+//! \param[in] top 32-bit color (R|G|B|A) to overlay
+//! \param[in] bottom 32-bit color (R|G|B|A) to be overlaid upon
+//! \return 32-bit color (R|G|B|A) result of the ADD OVERLAY operation
+//!
+//! \see https://en.wikipedia.org/wiki/Alpha_compositing#Description
+//! \see AlphaBlendComponent()
 uint32_t AlphaBlendPixels(uint32_t top, uint32_t bottom) {
         float bottomRed   = ByteToFloat((bottom >> 24) & 0xFF);
         float bottomGreen = ByteToFloat((bottom >> 16) & 0xFF);
@@ -167,13 +195,7 @@ uint32_t AlphaBlendPixels(uint32_t top, uint32_t bottom) {
         return newColor;
 }
 
-//! \brief Put a pixel into the graphics buffer
-//!
-//! \param[in,out] graphics Graphics state to be manipulated
-//! \param[in] x horizontal position in display buffer (assuming no scaling)
-//! \param[in] y vertical position in display buffer (assuming no scaling)
-//! \param[in] color Color to put into display buffer
-void GraphicsPutPixel(struct graphics *graphics, int x, int y, unsigned int color) {
+void GraphicsPutPixel(struct graphics *graphics, int x, int y, uint32_t color) {
         if (x >= 0 && x < graphics->width && y >= 0 && y < graphics->height) {
                 uint8_t opacity = color & 0xFF;
                 if (0 == opacity) {
@@ -198,8 +220,6 @@ uint32_t GraphicsGetPixel(struct graphics *graphics, int x, int y) {
 }
 
 //! \brief Draws a line from (x1,y1) to (x2,y2)
-//!
-//! Used by GraphicsTriangleWireframe() and GraphicsTriangleSolid()
 //!
 //! \param[in,out] graphics Graphics state to be manipulated
 //! \param[in] x1 horizontal position of the line start.
@@ -278,13 +298,6 @@ void GraphicsDrawLine(struct graphics *graphics, int x1, int y1, int x2, int y2,
         }
 }
 
-//! Used internally by GraphicsTriangleSolid()
-void TriangleSolidDrawLine(struct graphics *graphics, int xmin, int xmax, int y, unsigned int color) {
-        for (int i = xmin; i <= xmax; i++) {
-                GraphicsPutPixel(graphics, i, y, color);
-        }
-}
-
 void GraphicsInitText(struct graphics *graphics, unsigned char *ttfBuffer) {
         if (NULL == ttfBuffer) {
                 // TODO: error handling
@@ -294,12 +307,12 @@ void GraphicsInitText(struct graphics *graphics, unsigned char *ttfBuffer) {
         stbtt_InitFont(&graphics->fontInfo, (const unsigned char *)ttfBuffer, stbtt_GetFontOffsetForIndex(ttfBuffer, 0));
 }
 
-void GraphicsDrawText(struct graphics *graphics, int x, int y, char *string, int pixHeight, uint32_t color) {
+void GraphicsDrawText(struct graphics *graphics, int x, int y, char *string, int fontHeight, uint32_t color) {
         int len = strlen(string);
         int advanceWidths[len + 1];
         advanceWidths[0] = 0;
 
-        float scale = stbtt_ScaleForPixelHeight(&graphics->fontInfo, pixHeight);
+        float scale = stbtt_ScaleForPixelHeight(&graphics->fontInfo, fontHeight);
 
         // Render the text.
         int xOffset = 0;
