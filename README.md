@@ -1,5 +1,5 @@
 # GrooveStomp's Text Renderer
-[![GPLv3 license](https://img.shields.io/badge/License-GPLv3-blue.svg)](http://perso.crans.org/besson/LICENSE.html) [![Reference Documentation](https://img.shields.io/static/v1?label=c&message=documentation&color=brightgreen)](https://groovestomp.github.io/gstxt)
+[![GPLv3 license](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://raw.githubusercontent.com/GrooveStomp/gstxt/master/LICENSE) [![Reference Documentation](https://img.shields.io/static/v1?label=c&message=documentation&color=brightgreen)](https://groovestomp.github.io/gstxt)
 
 This is a small demonstration program I put together to understand how to use [stb_truetype.h](https://github.com/nothings/stb).
 It creates a window and renders the `text` parameter to the window based on the parameters specified.
